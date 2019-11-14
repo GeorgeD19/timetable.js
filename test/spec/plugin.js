@@ -34,6 +34,19 @@
       expect(function(){tt.addLocations({});}).to.throw('Tried to add locations in wrong format');
     });
 
+    it('should by default set its time interval to 60 minutes', function() {
+      expect(this.timetable.interval).equal(60);
+    });
+
+    it('should allow to set its interval from 1 to 60', function() {
+        var errorMsg = 'Timetable interval should be an integer 1 to 60';
+        var tt = this.timetable;
+        expect(tt.setInterval(1).interval).equal(1);
+        expect(tt.setInterval(60).interval).equal(60);
+        expect(function() { tt.setInterval(0); }).to.throw(Error, errorMsg);
+        expect(function() { tt.setInterval(61); }).to.throw(Error, errorMsg);
+    });
+
     it('should be possible to add events for an existing location using js dates', function () {
       var tt = this.timetable;
       tt.addLocations(['loc1', 'loc2', 'loc5']);

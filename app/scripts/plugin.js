@@ -7,6 +7,7 @@ var Timetable = function() {
 		hourStart: 9,
 		hourEnd: 17
 	};
+	this.intervalPeriod = 60;
 	this.locations = [];
 	this.events = [];
 };
@@ -44,6 +45,14 @@ Timetable.Renderer = function(tt) {
 	}
 
 	Timetable.prototype = {
+		setIntervalPeriod: function(intervalPeriod) {
+			if (intervalPeriod > 60 || intervalPeriod === 0) {
+				throw new Error('Timetable interval should be an integer 1 to 60');
+			} else {
+				this.intervalPeriod = intervalPeriod;
+			}
+			return this;
+		},
 		setScope: function(start, end) {
 			if (isValidHourRange(start, end)) {
 				this.scope.hourStart = start;
@@ -104,9 +113,11 @@ Timetable.Renderer = function(tt) {
 	}
 
 	function prettyFormatHour(hour) {
-		var prefix = hour < 10 ? '0' : '';
-		return prefix + hour + ':00';
-	}
+        var minute = Math.round((hour - Math.floor(hour)) * 60);
+        var minutePrefix = minute < 10 ? '0' : '';
+        var prefix = hour < 10 ? '0' : '';
+        return prefix + Math.floor(hour) + ':' + minutePrefix + minute;
+    }
 
 	Timetable.Renderer.prototype = {
 		draw: function(selector) {
@@ -148,19 +159,35 @@ Timetable.Renderer = function(tt) {
 				var completed = false;
 				var looped = false;
 
+				var intervalPeriod = timetable.intervalPeriod;
+
 				for (var hour=timetable.scope.hourStart; !completed;) {
 					var liNode = headerULNode.appendChild(document.createElement('li'));
 					var spanNode = liNode.appendChild(document.createElement('span'));
 					spanNode.className = 'time-label';
 					spanNode.textContent = prettyFormatHour(hour);
 
-					if (hour === timetable.scope.hourEnd && (timetable.scope.hourStart !== timetable.scope.hourEnd || looped)) {
-						completed = true;
-					}
-					if (++hour === 24) {
-						hour = 0;
-						looped = true;
-					}
+					if (Math.floor(hour) === timetable.scope.hourEnd && hour !== timetable.scope.hourEnd) {
+                        var query = document.querySelectorAll(selector + ' time header ul li');
+                        var previousHour = hour - (intervalPeriod / 60);
+                        var baseWidth = query[0].offsetWidth;
+                        var widthPercentage = (Math.floor(hour) - previousHour) / (intervalPeriod / 60);
+                        var width = baseWidth * widthPercentage;
+                        var index = query.length - 2;
+                        query[index].style.width = width + 'px';
+                        hour = Math.floor(hour);
+                        if (width < (baseWidth / 2)) {
+                            spanNode.textContent = '';
+                        }
+                    }
+                    if (Math.floor(hour) === timetable.scope.hourEnd && (timetable.scope.hourStart !== timetable.scope.hourEnd || looped)) {
+                        completed = true;
+                    }
+                    hour += intervalPeriod / 60;
+                    if (Math.floor(hour) === 24) {
+                        hour = 0;
+                        looped = true;
+                    }
 				}
 				return headerNode;
 			}
